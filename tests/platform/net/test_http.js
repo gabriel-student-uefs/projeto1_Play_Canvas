@@ -1,13 +1,13 @@
 describe('pc.Http', function () {
-    var retryDelay;
+    var originalRetryDelay;
     var xhr;
     beforeEach(function () {
-        retryDelay = pc.Http.retryDelay;
+        originalRetryDelay = pc.Http.retryDelay;
         pc.Http.retryDelay = 1;
     });
 
     afterEach(function () {
-        pc.Http.retryDelay = retryDelay;
+        pc.Http.retryDelay = originalRetryDelay;
         if (xhr) {
             xhr.restore();
             xhr = null;
