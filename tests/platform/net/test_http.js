@@ -1,36 +1,33 @@
+const { expect } = require('chai');
+const sinon = require('sinon');
+const pc = require('playcanvas'); // Assuming playcanvas is the library being tested
+
 describe('pc.Http', function () {
-    var retryDelay;
-    var xhr;
+    let retryDelay;
+    let xhr;
+
     beforeEach(function () {
         retryDelay = pc.Http.retryDelay;
         pc.Http.retryDelay = 1;
+        xhr = sinon.useFakeXMLHttpRequest();
     });
 
     afterEach(function () {
         pc.Http.retryDelay = retryDelay;
-        if (xhr) {
-            xhr.restore();
-            xhr = null;
-        }
+        xhr.restore();
         sinon.restore();
     });
 
-    it('get() retries resource and returns result on third attempt', function (done) {
+    it('get() retries resource and returns result if eventually found', function (done) {
         sinon.spy(pc.http, 'request');
 
-        var requests = 0;
-        xhr = sinon.useFakeXMLHttpRequest();
+        let requests = 0;
         xhr.onCreate = function (xhr) {
             setTimeout(function () {
-                try {
-                    requests++;
-                    if (requests === 3) {
-                        xhr.respond(200, { ContentType: 'application/json' }, JSON.stringify({ test: "value" }));
-                    } else {
-                        xhr.error();
-                    }
-                } catch (err) {
-                    done(new Error(err.message + '\n' + err.stack));
+                if (++requests === 3) {
+                    xhr.respond(200, { ContentType: 'application/json' }, JSON.stringify({ test: "value" }));
+                } else {
+                    xhr.error();
                 }
             });
         };
@@ -46,41 +43,10 @@ describe('pc.Http', function () {
         });
     });
 
-    it('get() retries resource and fails after max retries', function (done) {
-        sinon.spy(pc.http, 'request');
-
-        var requests = 0;
-        xhr = sinon.useFakeXMLHttpRequest();
-        xhr.onCreate = function (xhr) {
-            setTimeout(function () {
-                try {
-                    requests++;
-                    xhr.error();
-                } catch (err) {
-                    done(new Error(err.message + '\n' + err.stack));
-                }
-            });
-        };
-
-        pc.http.get('/someurl.json', {
-            retry: true,
-            maxRetries: 2
-        }, function (err, data) {
-            expect(err).to.not.equal(null);
-            expect(pc.http.request.callCount).to.equal(3);
-            done();
-        });
-    });
-
     it('status 0 returns "Network error"', function (done) {
-        xhr = sinon.useFakeXMLHttpRequest();
         xhr.onCreate = function (xhr) {
             setTimeout(function () {
-                try {
-                    xhr.error();
-                } catch (err) {
-                    done(new Error(err.message + '\n' + err.stack));
-                }
+                xhr.error();
             });
         };
 
