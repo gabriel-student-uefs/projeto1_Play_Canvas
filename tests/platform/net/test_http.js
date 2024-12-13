@@ -1,15 +1,12 @@
 describe('pc.Http', function () {
-    var originalRetryDelay;
     var xhr;
     beforeEach(function () {
-        originalRetryDelay = pc.Http.retryDelay;
-        pc.Http.retryDelay = 1;
+        retryDelay = pc.Http.retryDelay;
     });
 
     afterEach(function () {
-        pc.Http.retryDelay = originalRetryDelay;
+        pc.Http.retryDelay = retryDelay;
         if (xhr) {
-            xhr.restore();
             xhr = null;
         }
         sinon.restore();
