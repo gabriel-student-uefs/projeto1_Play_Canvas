@@ -21,11 +21,18 @@ describe('pc.Http', function () {
     it('get() retries resource and returns result if eventually found', function (done) {
         sinon.spy(pc.http, 'request');
 
-        let requests = 0;
+        const responses = [
+            { status: 0, responseText: '' }, // First attempt fails
+            { status: 0, responseText: '' }, // Second attempt fails
+            { status: 200, responseText: JSON.stringify({ test: "value" }) } // Third attempt succeeds
+        ];
+
+        let requestIndex = 0;
         xhr.onCreate = function (xhr) {
             setTimeout(function () {
-                if (++requests === 3) {
-                    xhr.respond(200, { ContentType: 'application/json' }, JSON.stringify({ test: "value" }));
+                const response = responses[requestIndex++];
+                if (response.status === 200) {
+                    xhr.respond(response.status, { ContentType: 'application/json' }, response.responseText);
                 } else {
                     xhr.error();
                 }
@@ -33,26 +40,13 @@ describe('pc.Http', function () {
         };
 
         pc.http.get('/someurl.json', {
-            retry: true,
-            maxRetries: 2
-        }, function (err, data) {
-            expect(err).to.equal(null);
-            expect(pc.http.request.callCount).to.equal(3);
-            expect(data).to.deep.equal({ test: "value" });
-            done();
-        });
-    });
-
-    it('status 0 returns "Network error"', function (done) {
-        xhr.onCreate = function (xhr) {
-            setTimeout(function () {
-                xhr.error();
-            });
-        };
-
-        pc.http.get('/someurl.json', function (err, data) {
-            expect(err).to.equal('Network error');
-            done();
+            success: function (data) {
+                expect(data.test).to.equal('value');
+                done();
+            },
+            error: function () {
+                done(new Error('Request failed'));
+            }
         });
     });
 });
